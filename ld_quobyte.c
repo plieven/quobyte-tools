@@ -46,7 +46,7 @@ static int init_called = 0;
 static char *qRegistry = NULL;
 static int qRefCnt = 0;
 
-void qDecRef(void) {
+static void qDecRef(void) {
 	assert(qDecRef > 0 && qRegistry);
 	if (!--qRefCnt) {
 		int _errno = errno;
@@ -57,7 +57,7 @@ void qDecRef(void) {
 	}
 }
 
-int is_quobyte_path(const char *path, char **filename, int follow_symlink) {
+static int is_quobyte_path(const char *path, char **filename, int follow_symlink) {
 	char *registry, *tmp;
 	int ret = 0;
 	if (strncmp(path, "quobyte://", 10)) {
@@ -95,7 +95,7 @@ out:
     return ret;
 }
 
-void ld_quobyte_init(void) {
+static void ld_quobyte_init(void) {
 	int i;
 	if (init_called) return;
 	for (i = 0; i < QUOBYTE_MAX_FD; i++) quobyte_fd_list[i].fd = -1;
@@ -103,12 +103,20 @@ void ld_quobyte_init(void) {
 	init_called = 1;
 }
 
-struct quobyte_fd_list *is_quobyte_fd(int fd) {
+static struct quobyte_fd_list *is_quobyte_fd(int fd) {
 	int i;
 	for (i = 0; i < QUOBYTE_MAX_FD; i++) {
 		if (quobyte_fd_list[i].fd == fd) return &quobyte_fd_list[i];
 	}
 	return NULL;
+}
+
+static int is_quobyte_dh(DIR *dirp) {
+	int i;
+	for (i = 0; i < QUOBYTE_MAX_DIR; i++) {
+		if (quobyte_dir_list[i].dirp == dirp) return 1;
+	}
+	return 0;
 }
 
 DIR *(*real_opendir)(const char *name) = NULL;
@@ -135,14 +143,6 @@ DIR *opendir(const char *name) {
 	}
 	LD_QUOBYTE_DPRINTF("opendir name=%s", name);
 	return real_opendir(name);
-}
-
-int is_quobyte_dh(DIR *dirp) {
-	int i;
-	for (i = 0; i < QUOBYTE_MAX_DIR; i++) {
-		if (quobyte_dir_list[i].dirp == dirp) return 1;
-	}
-	return 0;
 }
 
 long (*real_telldir)(DIR *dirp) = NULL;
