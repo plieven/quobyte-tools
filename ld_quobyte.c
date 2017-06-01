@@ -317,12 +317,8 @@ int dup2(int oldfd, int newfd)
 {
 	LD_DLSYM(real_dup2, dup2, "dup2");
 	LD_QUOBYTE_DPRINTF("dup2 oldfd=%d newfd=%d", oldfd, newfd);
-	int i;
-	for (i = 0; i < QUOBYTE_MAX_FD; i++) {
-		if (quobyte_fd_list[i].fd == oldfd) {
-			quobyte_fd_list[i].fd = newfd;
-		}
-	}
+	struct quobyte_fd_list *e = is_quobyte_fd(oldfd);
+	if (e) e->fd = newfd;
 	return real_dup2(oldfd, newfd);
 }
 
