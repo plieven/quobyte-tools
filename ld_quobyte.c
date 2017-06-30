@@ -455,3 +455,16 @@ int dirfd(DIR *dirp)
 	}
 	return real_dirfd(dirp);
 }
+
+int (*real_readdir_r)(DIR *dirp, struct dirent *entry, struct dirent **result);
+int readdir_r(DIR *dirp, struct dirent *entry, struct dirent **result)
+{
+	LD_DLSYM(real_readdir_r, readdir_r, "readdir_r");
+	LD_QUOBYTE_DPRINTF("readdir_r called %p entry=%p *result=%p", dirp, entry, *result);
+	if (is_quobyte_dh(dirp)) {
+		struct dirent *ret = readdir(dirp);
+		*result = ret;
+		return 0;
+	}
+	return real_readdir_r(dirp, entry, result);
+}
