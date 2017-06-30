@@ -60,7 +60,7 @@ static void qDecRef(void) {
 static int is_quobyte_path(const char *path, char **filename, int follow_symlink) {
 	char *registry, *tmp;
 	int ret = 0;
-	if (strncmp(path, "quobyte://", 10)) {
+	if (strncmp(path, "quobyte://", 10) && strncmp(path, "quobyte:\\\\", 10)) {
 		return 0;
 	}
 	registry = strdup(path + 10);
