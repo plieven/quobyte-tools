@@ -124,6 +124,7 @@ DIR *opendir(const char *name) {
 	char *filename;
 	ld_quobyte_init();
 	LD_DLSYM(real_opendir, opendir, "opendir");
+	LD_QUOBYTE_DPRINTF("opendir name=%s", name);
 	if (is_quobyte_path(name, &filename, 0)) {
 		int i;
 		DIR *dh = (DIR*) quobyte_opendir(filename);
@@ -141,7 +142,6 @@ DIR *opendir(const char *name) {
 		assert(i < QUOBYTE_MAX_DIR);
 		return dh;
 	}
-	LD_QUOBYTE_DPRINTF("opendir name=%s", name);
 	return real_opendir(name);
 }
 
