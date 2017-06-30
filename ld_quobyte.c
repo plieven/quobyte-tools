@@ -122,6 +122,7 @@ static int is_quobyte_dh(DIR *dirp) {
 DIR *(*real_opendir)(const char *name) = NULL;
 DIR *opendir(const char *name) {
 	char *filename;
+	DIR* ret;
 	ld_quobyte_init();
 	LD_DLSYM(real_opendir, opendir, "opendir");
 	LD_QUOBYTE_DPRINTF("opendir name=%s", name);
@@ -131,6 +132,7 @@ DIR *opendir(const char *name) {
 		free(filename);
 		if (!dh) {
 			qDecRef();
+			LD_QUOBYTE_DPRINTF("opendir ret=%p", NULL);
 			return NULL;
 		}
 		for (i = 0; i < QUOBYTE_MAX_DIR; i++) {
@@ -140,9 +142,12 @@ DIR *opendir(const char *name) {
 			}
 		}
 		assert(i < QUOBYTE_MAX_DIR);
+		LD_QUOBYTE_DPRINTF("opendir ret=%p", dh);
 		return dh;
 	}
-	return real_opendir(name);
+	ret = real_opendir(name);
+	LD_QUOBYTE_DPRINTF("opendir ret=%p", ret);
+	return ret;
 }
 
 long (*real_telldir)(DIR *dirp) = NULL;
