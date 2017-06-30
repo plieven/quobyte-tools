@@ -443,3 +443,15 @@ int access(const char *pathname, int mode)
 	}
     return real_access(pathname, mode);
 }
+
+int (*real_dirfd)(DIR *dirp);
+int dirfd(DIR *dirp)
+{
+	LD_DLSYM(real_dirfd, dirfd, "dirfd");
+	LD_QUOBYTE_DPRINTF("dirfd called %p", dirp);
+	if (is_quobyte_dh(dirp)) {
+		errno = ENOTSUP;
+		return -1;
+	}
+	return real_dirfd(dirp);
+}
