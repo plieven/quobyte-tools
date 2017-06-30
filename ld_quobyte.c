@@ -423,3 +423,18 @@ int close(int fd)
 	}
 	return real_close(fd);
 }
+
+int (*real_access)(const char *pathname, int mode);
+int access(const char *pathname, int mode)
+{
+	LD_DLSYM(real_access, access, "access");
+	LD_QUOBYTE_DPRINTF("access called %s %d", pathname, mode);
+	char *filename;
+	if (is_quobyte_path(pathname, &filename, 1)) {
+		int ret = quobyte_access(filename, mode);
+		free(filename);
+		qDecRef();
+		return ret;
+	}
+    return real_access(pathname, mode);
+}
