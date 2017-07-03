@@ -2,6 +2,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/statvfs.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -470,4 +471,19 @@ int readdir_r(DIR *dirp, struct dirent *entry, struct dirent **result)
 		return 0;
 	}
 	return real_readdir_r(dirp, entry, result);
+}
+
+int (*real_statvfs)(const char *path, struct statvfs *buf);
+int statvfs(const char *path, struct statvfs *buf)
+{
+	LD_DLSYM(real_statvfs, statvfs, "statvfs");
+	LD_QUOBYTE_DPRINTF("statvfs called path %s buf %p", path, buf);
+	char *filename;
+	if (is_quobyte_path(path, &filename, 1)) {
+		int ret = quobyte_statfs(filename, buf);
+		free(filename);
+		qDecRef();
+		return ret;
+	}
+	return real_statvfs(path, buf);
 }
