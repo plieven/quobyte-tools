@@ -463,6 +463,9 @@ int readdir_r(DIR *dirp, struct dirent *entry, struct dirent **result)
 	LD_QUOBYTE_DPRINTF("readdir_r called %p entry=%p *result=%p", dirp, entry, *result);
 	if (is_quobyte_dh(dirp)) {
 		struct dirent *ret = readdir(dirp);
+		if (ret) {
+			memcpy(entry, ret, sizeof(struct dirent));
+		}
 		*result = ret;
 		return 0;
 	}
