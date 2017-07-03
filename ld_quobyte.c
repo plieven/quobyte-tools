@@ -45,7 +45,6 @@ static struct quobyte_dir_list quobyte_dir_list[QUOBYTE_MAX_DIR];
 
 static int init_called = 0, fini_called = 0;
 static char *qRegistry = NULL;
-static int qRefCnt = 0;
 
 static void ld_quobyte_init(void) {
 	int i;
@@ -85,7 +84,6 @@ static int is_quobyte_path(const char *path, char **filename, int follow_symlink
 		qRegistry = strdup(registry);
 	}
 	ret = 1;
-	qRefCnt++;
 	if (follow_symlink) {
 		char link[PATH_MAX];
 		int ret2 = quobyte_readlink(*filename, &link[0], PATH_MAX);
