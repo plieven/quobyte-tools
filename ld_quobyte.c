@@ -509,3 +509,17 @@ void exit_group(int status)
 
 	real_exit_group(status);
 }
+
+int (*real_unlink)(const char *pathname);
+int unlink(const char *pathname)
+{
+	LD_DLSYM(real_unlink, unlink, "unlink");
+	LD_QUOBYTE_DPRINTF("unlink called path %s", pathname);
+	char *filename;
+	if (is_quobyte_path(pathname, &filename, 1)) {
+		int ret = quobyte_unlink(filename);
+		free(filename);
+		return ret;
+	}
+	return real_unlink(pathname);
+}
