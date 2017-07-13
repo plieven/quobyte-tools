@@ -523,3 +523,52 @@ int unlink(const char *pathname)
 	}
 	return real_unlink(pathname);
 }
+
+int (*real_mkdir)(const char *path, mode_t mode);
+int mkdir(const char *path, mode_t mode)
+{
+	LD_DLSYM(real_mkdir, mkdir, "mkdir");
+	LD_QUOBYTE_DPRINTF("mkdir called path %s mode %o", path, mode);
+	char *filename;
+	if (is_quobyte_path(path, &filename, 1)) {
+		int ret = quobyte_mkdir(filename, mode);
+		free(filename);
+		return ret;
+	}
+	return real_mkdir(path, mode);
+}
+
+int (*real_rmdir)(const char* path);
+int rmdir(const char* path)
+{
+	LD_DLSYM(real_rmdir, rmdir, "rmdir");
+	LD_QUOBYTE_DPRINTF("rmdir called path %s", path);
+	char *filename;
+	if (is_quobyte_path(path, &filename, 1)) {
+		int ret = quobyte_rmdir(filename);
+		free(filename);
+		return ret;
+	}
+	return real_rmdir(path);
+}
+
+int (*real_rename)(const char *old, const char *new);
+int rename(const char *old, const char *new)
+{
+	LD_DLSYM(real_rename, rename, "rename");
+	LD_QUOBYTE_DPRINTF("rename called old %s new %s", old, new);
+	char *filename_old, *filename_new;
+	if (is_quobyte_path(old, &filename_old, 1)) {
+		if (is_quobyte_path(new, &filename_new, 1)) {
+			int ret = quobyte_rename(filename_old, filename_new);
+			free(filename_old);
+			free(filename_new);
+			return ret;
+		} else {
+			int ret = quobyte_rename(filename_old, new);
+			free(filename_old);
+			return ret;
+		}
+	}
+	return real_rename(old, new);
+}
