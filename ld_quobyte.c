@@ -470,7 +470,7 @@ int statvfs(const char *path, struct statvfs *buf)
 	LD_QUOBYTE_DPRINTF("statvfs called path %s buf %p", path, buf);
 	char *filename;
 	if (is_quobyte_path(path, &filename, 1)) {
-		int ret = quobyte_statfs(filename, buf);
+		int ret = quobyte_statvfs(filename, buf);
 		free(filename);
 		return ret;
 	}
