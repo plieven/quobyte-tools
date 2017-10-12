@@ -43,7 +43,7 @@ struct quobyte_dir_list {
 static struct quobyte_fd_list quobyte_fd_list[QUOBYTE_MAX_FD];
 static struct quobyte_dir_list quobyte_dir_list[QUOBYTE_MAX_DIR];
 
-static int init_called = 0, fini_called = 0;
+static int init_called = 0;
 static char *qRegistry = NULL;
 
 static void ld_quobyte_init(void) {
@@ -55,13 +55,11 @@ static void ld_quobyte_init(void) {
 }
 
 static void ld_quobyte_fini(void) {
-	if (fini_called) return;
 	if (qRegistry) {
 		quobyte_destroy_adapter();
 		free(qRegistry);
 		qRegistry = NULL;
 	}
-	fini_called = 1;
 }
 
 __attribute__((section(".init_array"), used)) static typeof(ld_quobyte_init) *init_p = ld_quobyte_init;
