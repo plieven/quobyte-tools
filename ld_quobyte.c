@@ -49,12 +49,14 @@ static char *qRegistry = NULL;
 static void ld_quobyte_init(void) {
 	int i;
 	if (init_called) return;
+	LD_QUOBYTE_DPRINTF("ld_quobyte_init()");
 	for (i = 0; i < QUOBYTE_MAX_FD; i++) quobyte_fd_list[i].fd = -1;
 	for (i = 0; i < QUOBYTE_MAX_DIR; i++) quobyte_dir_list[i].dirp = NULL;
 	init_called = 1;
 }
 
 static void ld_quobyte_fini(void) {
+	LD_QUOBYTE_DPRINTF("ld_quobyte_fini()");
 	if (qRegistry) {
 		quobyte_destroy_adapter();
 		free(qRegistry);
