@@ -46,8 +46,15 @@ static struct quobyte_dir_list quobyte_dir_list[QUOBYTE_MAX_DIR];
 static int init_called = 0;
 static char *qRegistry = NULL;
 
+static void ld_quobyte_init(void) {
+	int i;
+	if (init_called) return;
+	for (i = 0; i < QUOBYTE_MAX_FD; i++) quobyte_fd_list[i].fd = -1;
+	for (i = 0; i < QUOBYTE_MAX_DIR; i++) quobyte_dir_list[i].dirp = NULL;
+	init_called = 1;
+}
+
 static void ld_quobyte_fini(void) {
-	LD_QUOBYTE_DPRINTF("ld_quobyte_fini(void)");
 	if (qRegistry) {
 		quobyte_destroy_adapter();
 		free(qRegistry);
@@ -55,17 +62,8 @@ static void ld_quobyte_fini(void) {
 	}
 }
 
-static void ld_quobyte_init(void) {
-	int i;
-	if (init_called) return;
-	LD_QUOBYTE_DPRINTF("ld_quobyte_init(void)");
-	for (i = 0; i < QUOBYTE_MAX_FD; i++) quobyte_fd_list[i].fd = -1;
-	for (i = 0; i < QUOBYTE_MAX_DIR; i++) quobyte_dir_list[i].dirp = NULL;
-	init_called = 1;
-	atexit(ld_quobyte_fini);
-}
-
 __attribute__((section(".init_array"), used)) static typeof(ld_quobyte_init) *init_p = ld_quobyte_init;
+__attribute__((section(".fini_array"), used)) static typeof(ld_quobyte_fini) *fini_p = ld_quobyte_fini;
 
 static int is_quobyte_path(const char *path, char **filename, int follow_symlink) {
 	char *registry, *tmp;
@@ -475,6 +473,39 @@ int statvfs(const char *path, struct statvfs *buf)
 		return ret;
 	}
 	return real_statvfs(path, buf);
+}
+
+void (*real__exit)(int) __attribute__((noreturn));
+void _exit(int status)
+{
+	LD_DLSYM(real__exit, _exit, "_exit");
+	LD_QUOBYTE_DPRINTF("_exit called status %d", status);
+
+	ld_quobyte_fini();
+
+	real__exit(status);
+}
+
+void (*real_exit)(int) __attribute__((noreturn));
+void exit(int status)
+{
+	LD_DLSYM(real_exit, exit, "exit");
+	LD_QUOBYTE_DPRINTF("exit called status %d", status);
+
+	ld_quobyte_fini();
+
+	real_exit(status);
+}
+
+void (*real_exit_group)(int status) __attribute__((noreturn));
+void exit_group(int status)
+{
+	LD_DLSYM(real_exit_group, exit_group, "exit_group");
+	LD_QUOBYTE_DPRINTF("exit_group called status %d", status);
+
+	ld_quobyte_fini();
+
+	real_exit_group(status);
 }
 
 int (*real_unlink)(const char *pathname);
