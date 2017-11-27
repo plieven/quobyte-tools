@@ -53,7 +53,11 @@ $errors = array();
 
 foreach ($result['result']['rule'] as $row) {
 	if ($row['alert_state'] != 'FIRING') continue;
-	$errors[$row['rule_identifier']]++;
+	if (array_key_exists($row['rule_identifier'], $errors)) {
+		$errors[$row['rule_identifier']]++;
+	} else {
+		$errors[$row['rule_identifier']] = 1;
+	}
 	if ($row['severity'] == 'WARNING') $ret = max($ret, 1);
 	if ($row['severity'] == 'ERROR') $ret = max($ret, 2);
 }
