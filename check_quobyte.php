@@ -1,3 +1,4 @@
+#!/usr/bin/php -q
 <?php
 
 if ($argc < 4) {
