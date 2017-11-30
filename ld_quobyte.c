@@ -432,7 +432,21 @@ int access(const char *pathname, int mode)
 		free(filename);
 		return ret;
 	}
-    return real_access(pathname, mode);
+	return real_access(pathname, mode);
+}
+
+int (*real_chmod)(const char* path, mode_t mode);
+int chmod(const char* path, mode_t mode)
+{
+	LD_DLSYM(real_chmod, chmod, "chmod");
+	LD_QUOBYTE_DPRINTF("chmod called %s %d", path, mode);
+	char *filename;
+	if (is_quobyte_path(path, &filename, 1)) {
+		int ret = quobyte_chmod(filename, mode);
+		free(filename);
+		return ret;
+	}
+	return real_chmod(path, mode);
 }
 
 int (*real_dirfd)(DIR *dirp);
