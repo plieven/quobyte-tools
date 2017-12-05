@@ -19,7 +19,7 @@ curl_setopt_array($ch = curl_init(), array(
 		array('id' => uniqid(),
 		      'jsonrpc' => '2.0',
 		      'method' => 'getFiringRules',
-		      'params' => array('retry' => 'NEVER'),
+		      'params' => array('retry' => 'INTERACTIVE'),
 		)
 	),
 ));
