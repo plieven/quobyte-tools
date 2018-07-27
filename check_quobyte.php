@@ -53,6 +53,8 @@ $ret = 0;
 $errors = array();
 
 foreach ($result['result']['rule'] as $row) {
+    if ($row['rule_identifier'] == 'client/corrupted_data_received') continue;
+    if ($row['rule_identifier'] == 'service/not_seen_for_long') continue;
 	if ($row['alert_state'] != 'FIRING') continue;
 	if (array_key_exists($row['rule_identifier'], $errors)) {
 		$errors[$row['rule_identifier']]++;
