@@ -55,9 +55,13 @@ static void ld_quobyte_init(void) {
 	init_called = 1;
 }
 
-static void ld_quobyte_fini(void) {
-	LD_QUOBYTE_DPRINTF("ld_quobyte_fini()");
+static void ld_quobyte_try_fini(void) {
+	int i;
+	LD_QUOBYTE_DPRINTF("ld_quobyte_try_fini()");
+	for (i = 0; i < QUOBYTE_MAX_FD; i++) if (quobyte_fd_list[i].fd != -1) return;
+	for (i = 0; i < QUOBYTE_MAX_DIR; i++) if (quobyte_dir_list[i].dirp != NULL) return;
 	if (qRegistry) {
+		LD_QUOBYTE_DPRINTF("quobyte_destroy_adapter()");
 		quobyte_destroy_adapter();
 		free(qRegistry);
 		qRegistry = NULL;
@@ -65,7 +69,6 @@ static void ld_quobyte_fini(void) {
 }
 
 __attribute__((section(".init_array"), used)) static typeof(ld_quobyte_init) *init_p = ld_quobyte_init;
-__attribute__((section(".fini_array"), used)) static typeof(ld_quobyte_fini) *fini_p = ld_quobyte_fini;
 
 static int is_quobyte_path(const char *path, char **filename, int follow_symlink) {
 	char *registry, *tmp;
@@ -133,6 +136,7 @@ DIR *opendir(const char *name) {
 		free(filename);
 		if (!dh) {
 			LD_QUOBYTE_DPRINTF("opendir ret=%p", NULL);
+			ld_quobyte_try_fini();
 			return NULL;
 		}
 		for (i = 0; i < QUOBYTE_MAX_DIR; i++) {
@@ -186,6 +190,7 @@ int closedir(DIR *dirp) {
 				quobyte_dir_list[i].dirp = NULL;
 			}
 		}
+		ld_quobyte_try_fini();
 		return ret;
 	}
 	return real_closedir(dirp);
@@ -199,6 +204,7 @@ int __xstat(int ver, const char *path, struct stat *buf) {
 	if (is_quobyte_path(path, &filename, 1)) {
 		int ret = quobyte_getattr(filename, buf);
 		free(filename);
+		ld_quobyte_try_fini();
 		return ret;
 	}
 	return real_xstat(ver, path, buf);
@@ -223,6 +229,7 @@ int __lxstat(int ver, const char *path, struct stat *buf) {
 	if (is_quobyte_path(path, &filename, 0)) {
 		int ret = quobyte_getattr(filename, buf);
 		free(filename);
+		ld_quobyte_try_fini();
 		return ret;
 	}
 	return real_lxstat(ver, path, buf);
@@ -236,6 +243,7 @@ ssize_t readlink(const char *path, char *buf, size_t bufsiz) {
 	if (is_quobyte_path(path, &filename, 0)) {
 		int ret = quobyte_readlink(filename, buf, bufsiz);
 		free(filename);
+		ld_quobyte_try_fini();
 		return ret;
 	}
 	return real_readlink(path, buf, bufsiz);
@@ -250,6 +258,7 @@ ssize_t getxattr(const char *path, const char *name,
 	if (is_quobyte_path(path, &filename, 1)) {
 		int ret = quobyte_getxattr(filename, name, value, size);
 		free(filename);
+		ld_quobyte_try_fini();
 		return ret;
 	}
     return real_getxattr(path, name, value, size);
@@ -264,6 +273,7 @@ ssize_t lgetxattr(const char *path, const char *name,
 	if (is_quobyte_path(path, &filename, 0)) {
 		int ret = quobyte_getxattr(filename, name, value, size);
 		free(filename);
+		ld_quobyte_try_fini();
 		return ret;
 	}
     return real_lgetxattr(path, name, value, size);
@@ -288,6 +298,7 @@ int open(const char *path, int flags, ...)
 		struct quobyte_fh* fh = quobyte_open(filename, flags, mode);
 		free(filename);
 		if (!fh) {
+			ld_quobyte_try_fini();
 			return -1;
 		}
 		for (i = 0; i < QUOBYTE_MAX_FD; i++) {
@@ -416,6 +427,7 @@ int close(int fd)
 		LD_QUOBYTE_DPRINTF("quobyte_close %p", e->fh);
 		close(fd);
 		ret = quobyte_close(e->fh);
+		ld_quobyte_try_fini();
 		return ret;
 	}
 	return real_close(fd);
@@ -430,6 +442,7 @@ int access(const char *pathname, int mode)
 	if (is_quobyte_path(pathname, &filename, 1)) {
 		int ret = quobyte_access(filename, mode);
 		free(filename);
+		ld_quobyte_try_fini();
 		return ret;
 	}
 	return real_access(pathname, mode);
@@ -444,6 +457,7 @@ int chmod(const char* path, mode_t mode)
 	if (is_quobyte_path(path, &filename, 1)) {
 		int ret = quobyte_chmod(filename, mode);
 		free(filename);
+		ld_quobyte_try_fini();
 		return ret;
 	}
 	return real_chmod(path, mode);
@@ -486,42 +500,10 @@ int statvfs(const char *path, struct statvfs *buf)
 	if (is_quobyte_path(path, &filename, 1)) {
 		int ret = quobyte_statvfs(filename, buf);
 		free(filename);
+		ld_quobyte_try_fini();
 		return ret;
 	}
 	return real_statvfs(path, buf);
-}
-
-void (*real__exit)(int) __attribute__((noreturn));
-void _exit(int status)
-{
-	LD_DLSYM(real__exit, _exit, "_exit");
-	LD_QUOBYTE_DPRINTF("_exit called status %d", status);
-
-	ld_quobyte_fini();
-
-	real__exit(status);
-}
-
-void (*real_exit)(int) __attribute__((noreturn));
-void exit(int status)
-{
-	LD_DLSYM(real_exit, exit, "exit");
-	LD_QUOBYTE_DPRINTF("exit called status %d", status);
-
-	ld_quobyte_fini();
-
-	real_exit(status);
-}
-
-void (*real_exit_group)(int status) __attribute__((noreturn));
-void exit_group(int status)
-{
-	LD_DLSYM(real_exit_group, exit_group, "exit_group");
-	LD_QUOBYTE_DPRINTF("exit_group called status %d", status);
-
-	ld_quobyte_fini();
-
-	real_exit_group(status);
 }
 
 int (*real_unlink)(const char *pathname);
@@ -533,6 +515,7 @@ int unlink(const char *pathname)
 	if (is_quobyte_path(pathname, &filename, 1)) {
 		int ret = quobyte_unlink(filename);
 		free(filename);
+		ld_quobyte_try_fini();
 		return ret;
 	}
 	return real_unlink(pathname);
@@ -547,6 +530,7 @@ int mkdir(const char *path, mode_t mode)
 	if (is_quobyte_path(path, &filename, 1)) {
 		int ret = quobyte_mkdir(filename, mode);
 		free(filename);
+		ld_quobyte_try_fini();
 		return ret;
 	}
 	return real_mkdir(path, mode);
@@ -561,6 +545,7 @@ int rmdir(const char* path)
 	if (is_quobyte_path(path, &filename, 1)) {
 		int ret = quobyte_rmdir(filename);
 		free(filename);
+		ld_quobyte_try_fini();
 		return ret;
 	}
 	return real_rmdir(path);
@@ -577,10 +562,12 @@ int rename(const char *old, const char *new)
 			int ret = quobyte_rename(filename_old, filename_new);
 			free(filename_old);
 			free(filename_new);
+			ld_quobyte_try_fini();
 			return ret;
 		} else {
 			int ret = quobyte_rename(filename_old, new);
 			free(filename_old);
+			ld_quobyte_try_fini();
 			return ret;
 		}
 	}
