@@ -73,10 +73,12 @@ static void ld_quobyte_try_fini(void) {
         }
     }
     if (qRegistry) {
+        int _errno = errno;
         LD_QUOBYTE_DPRINTF("quobyte_destroy_adapter()");
         quobyte_destroy_adapter();
         free(qRegistry);
         qRegistry = NULL;
+        errno = _errno;
     }
 }
 
